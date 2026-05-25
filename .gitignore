@@ -1,0 +1,8 @@
+meta_config.py
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.streamlit/secrets.toml
+.env
+*.tmp
