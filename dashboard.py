@@ -219,7 +219,7 @@ def sidebar(df_c):
     st.sidebar.caption("Source: OneDrive Excel. Click '🔄 Refresh Data' at the top after updating the Excel file.")
 
     sel_idx = list(range(len(sel_months)))  # kept for compatibility
-    return sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel
+    return sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel, custom_comp_start, custom_comp_end
 
 
 def filter_df(df_c, df_d, df_p, obj, start, end):
@@ -1266,7 +1266,7 @@ def main():
     df_c_raw, df_d_raw, df_p_raw = load_data()
 
     # sidebar
-    sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel = sidebar(df_c_raw)
+    sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel, custom_comp_start, custom_comp_end = sidebar(df_c_raw)
 
     # filter — selected period
     df_c, df_d, df_p = filter_df(df_c_raw, df_d_raw, df_p_raw, obj, start, end)
