@@ -183,9 +183,26 @@ def sidebar(df_c):
         st.sidebar.caption("Monthly data. Add a 'Date' column for daily granularity.")
 
     st.sidebar.markdown("#### Compare With")
-    comp_options = ["None", "Previous Period", "Previous Month", "Previous Quarter", "Same Period Last Year"]
+    comp_options = ["None", "Previous Period", "Previous Month", "Previous Quarter", "Same Period Last Year", "Custom"]
     comp_sel = st.sidebar.selectbox("Comparison period", comp_options, index=1,
                                     help="Overlay a prior period on KPIs and charts")
+
+    custom_comp_start, custom_comp_end = None, None
+    if comp_sel == "Custom":
+        _default_cs = (start - (end - start) - pd.Timedelta(days=1)).date()
+        _default_ce = (start - pd.Timedelta(days=1)).date()
+        _default_cs = max(_default_cs, min_d)
+        _default_ce = max(_default_ce, min_d)
+        custom_comp_start = st.sidebar.date_input(
+            "Comparison start", value=_default_cs,
+            min_value=min_d, max_value=max_d,
+            format="DD/MM/YYYY", key="cust_cs"
+        )
+        custom_comp_end = st.sidebar.date_input(
+            "Comparison end", value=_default_ce,
+            min_value=min_d, max_value=max_d,
+            format="DD/MM/YYYY", key="cust_ce"
+        )
 
     st.sidebar.markdown("#### Objective")
     raw_objs = sorted(df_c['Objective'].dropna().astype(str).str.strip().unique().tolist())
@@ -217,7 +234,7 @@ def filter_df(df_c, df_d, df_p, obj, start, end):
     return filt(df_c), filt(df_d), filt(df_p)
 
 
-def compute_comp_range(start, end, comp_sel):
+def compute_comp_range(start, end, comp_sel, custom_start=None, custom_end=None):
     """Returns (comp_start, comp_end, label) or (None, None, '') when no comparison."""
     if comp_sel == "None":
         return None, None, ""
@@ -251,6 +268,16 @@ def compute_comp_range(start, end, comp_sel):
         comp_start = start - pd.DateOffset(years=1)
         comp_end   = end   - pd.DateOffset(years=1)
         label = f"{comp_start.strftime('%d %b %Y')} – {comp_end.strftime('%d %b %Y')}"
+
+    elif comp_sel == "Custom":
+        if custom_start and custom_end:
+            comp_start = pd.Timestamp(custom_start)
+            comp_end   = pd.Timestamp(custom_end)
+            if comp_start > comp_end:
+                comp_start, comp_end = comp_end, comp_start
+            label = f"{comp_start.strftime('%d %b %Y')} – {comp_end.strftime('%d %b %Y')}"
+        else:
+            return None, None, ""
 
     else:
         return None, None, ""
@@ -1245,7 +1272,8 @@ def main():
     df_c, df_d, df_p = filter_df(df_c_raw, df_d_raw, df_p_raw, obj, start, end)
 
     # filter — comparison period
-    comp_start, comp_end, comp_label = compute_comp_range(start, end, comp_sel)
+    comp_start, comp_end, comp_label = compute_comp_range(start, end, comp_sel,
+                                                           custom_comp_start, custom_comp_end)
     if comp_start is not None:
         df_c_comp, df_d_comp, df_p_comp = filter_df(df_c_raw, df_d_raw, df_p_raw, obj, comp_start, comp_end)
     else:
