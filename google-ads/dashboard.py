@@ -116,11 +116,36 @@ with st.sidebar:
     st.markdown("---")
 
     DATA_MIN = pd.Timestamp("2025-10-01")
-    DATA_MAX = pd.Timestamp("2026-05-19")
+    # Dynamically compute DATA_MAX from the actual data
+    @st.cache_data(ttl=3600)
+    def _get_data_max():
+        try:
+            _df = _load_parquet_date_only() if _USE_PARQUET else None
+            if _df is not None and len(_df) > 0:
+                return _df
+        except Exception:
+            pass
+        return pd.Timestamp(datetime.now().date())
+
+    def _load_parquet_date_only():
+        import pyarrow.parquet as pq
+        pq_path = PARQUET_FOLDER / "campaign_performance.parquet"
+        if pq_path.exists():
+            tbl = pq.read_table(str(pq_path), columns=["Day"])
+            s = pd.to_datetime(tbl["Day"].to_pandas(), errors="coerce").dropna()
+            return s.max() if len(s) > 0 else pd.Timestamp(datetime.now().date())
+        return pd.Timestamp(datetime.now().date())
+
+    if _USE_PARQUET:
+        DATA_MAX = _load_parquet_date_only()
+    else:
+        DATA_MAX = pd.Timestamp(datetime.now().date())
+
+    _default_start = max(DATA_MIN, DATA_MAX - pd.Timedelta(days=29))
 
     date_range = st.date_input(
         "Date range",
-        value=(pd.Timestamp("2026-04-01").date(), DATA_MAX.date()),
+        value=(_default_start.date(), DATA_MAX.date()),
         min_value=DATA_MIN.date(),
         max_value=DATA_MAX.date(),
     )
@@ -219,7 +244,7 @@ with st.sidebar:
     st.caption("Share the Network URL with your team on the same Wi-Fi.")
 
     st.markdown("---")
-    st.caption("Data: Oct 2025 – May 2026")
+    st.caption(f"Data: Oct 2025 – {DATA_MAX.strftime('%b %Y')}")
 
 # ---------------------------------------------------------------------------
 # Load & filter campaigns (small — always loaded)
