@@ -12,7 +12,7 @@ from loader import (
     load_campaigns, load_search_terms_brand, load_search_terms_pmax,
     load_audiences, load_landing_pages, load_placements,
     load_shopping, load_demographics, load_geography,
-    filter_dates, filter_goals,
+    filter_dates, filter_goals, _USE_PARQUET, PARQUET_FOLDER,
 )
 
 # ---------------------------------------------------------------------------
@@ -155,35 +155,48 @@ with st.sidebar:
     st.markdown("---")
 
     # ── Refresh Data ─────────────────────────────────────────────────────────
-    st.markdown("#### 🔄 Refresh Data")
-    sync_info = _last_sync_info()
-    if sync_info.get('pulled_at'):
+    st.markdown("#### 🔄 Data")
+    if _USE_PARQUET:
+        # Cloud deployment — data comes from parquet files pushed via daily sync
         try:
-            pulled_dt = datetime.fromisoformat(sync_info['pulled_at'])
-            st.caption(f"Last synced: {pulled_dt.strftime('%d %b %Y, %H:%M')}")
+            import glob as _glob
+            _pq_files = list(PARQUET_FOLDER.glob("*.parquet"))
+            if _pq_files:
+                _latest_mtime = max(f.stat().st_mtime for f in _pq_files)
+                _latest_dt = datetime.fromtimestamp(_latest_mtime)
+                st.caption(f"Data updated: {_latest_dt.strftime('%d %b %Y')}")
         except Exception:
-            st.caption(f"Last synced: {sync_info['pulled_at'][:16]}")
-        dr = sync_info.get('data_range', {})
-        if dr:
-            st.caption(f"Data window: {dr.get('start','')} → {dr.get('end','')}")
+            pass
+        st.caption("Refreshed daily via automated sync.")
     else:
-        st.caption("google_latest.json not found — click Refresh to generate.")
-
-    if st.button("🔄 Refresh Google Data", use_container_width=True):
-        with st.spinner("Running google_sync.py (30-day window)…"):
-            sync_script = os.path.join(os.path.dirname(__file__), 'google_sync.py')
-            result = subprocess.run(
-                [sys.executable, sync_script, '30'],
-                capture_output=True, text=True, timeout=120
-            )
-        if result.returncode == 0:
-            # Clear all cached loader data so the dashboard picks up fresh Excel reads
-            st.cache_data.clear()
-            st.success("Data refreshed! Reloading…")
-            st.rerun()
+        # Local deployment — can run sync script directly
+        sync_info = _last_sync_info()
+        if sync_info.get('pulled_at'):
+            try:
+                pulled_dt = datetime.fromisoformat(sync_info['pulled_at'])
+                st.caption(f"Last synced: {pulled_dt.strftime('%d %b %Y, %H:%M')}")
+            except Exception:
+                st.caption(f"Last synced: {sync_info['pulled_at'][:16]}")
+            dr = sync_info.get('data_range', {})
+            if dr:
+                st.caption(f"Data window: {dr.get('start','')} → {dr.get('end','')}")
         else:
-            st.error("Sync failed. See details below.")
-            st.code(result.stderr or result.stdout, language='text')
+            st.caption("google_latest.json not found — click Refresh to generate.")
+
+        if st.button("🔄 Refresh Google Data", use_container_width=True):
+            with st.spinner("Running google_sync.py (30-day window)…"):
+                sync_script = os.path.join(os.path.dirname(__file__), 'google_sync.py')
+                result = subprocess.run(
+                    [sys.executable, sync_script, '30'],
+                    capture_output=True, text=True, timeout=120
+                )
+            if result.returncode == 0:
+                st.cache_data.clear()
+                st.success("Data refreshed! Reloading…")
+                st.rerun()
+            else:
+                st.error("Sync failed. See details below.")
+                st.code(result.stderr or result.stdout, language='text')
 
     st.markdown("---")
 
