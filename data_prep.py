@@ -14,18 +14,18 @@ PATH = (_REPO_EXCEL if _os.path.exists(_REPO_EXCEL)
 
 MONTH_ORDER = [
     'Oct-2025','Nov-2025','Dec-2025',
-    'Jan-2026','Feb-2026','Mar-2026','Apr-2026','May-2026',
+    'Jan-2026','Feb-2026','Mar-2026','Apr-2026','May-2026','Jun-2026',
 ]
 MONTH_LABELS = MONTH_ORDER   # same format used for both storage and display
 MONTH_STARTS = [
     datetime(2025,10,1), datetime(2025,11,1), datetime(2025,12,1),
     datetime(2026,1,1),  datetime(2026,2,1),  datetime(2026,3,1),
-    datetime(2026,4,1),  datetime(2026,5,1),
+    datetime(2026,4,1),  datetime(2026,5,1),  datetime(2026,6,1),
 ]
 MONTH_ENDS = [
     datetime(2025,10,31), datetime(2025,11,30), datetime(2025,12,31),
     datetime(2026,1,31),  datetime(2026,2,28),  datetime(2026,3,31),
-    datetime(2026,4,30),  datetime(2026,5,17),
+    datetime(2026,4,30),  datetime(2026,5,31),  datetime(2026,6,30),
 ]
 
 NUM_COLS = ['Amount spent (INR)','Purchases conversion value','Purchases',
