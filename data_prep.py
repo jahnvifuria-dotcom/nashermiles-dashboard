@@ -2,9 +2,14 @@ import json
 import pandas as pd
 import numpy as np
 
-import os as _os
+import os as _os, sys as _sys
 _BASE = _os.path.dirname(_os.path.abspath(__file__))
 def _p(name): return _os.path.join(_BASE, 'data', name)
+_HERE        = _BASE
+_REPO_EXCEL  = _os.path.join(_HERE, 'Meta Quarterly Performance Report.xlsx')
+_LOCAL_EXCEL = r'C:\Users\Lenovo\OneDrive\Meta\Meta Quarterly Performance Report.xlsx'
+# On Streamlit Cloud (Linux) always use repo path; on Windows prefer OneDrive
+PATH = _REPO_EXCEL if (_sys.platform != 'win32' or _os.path.exists(_REPO_EXCEL)) else _LOCAL_EXCEL
 
 EXCEL_PATH     = _p('NM_Offline_Monthly_Database.xlsx')
 DASHBOARD_PATH = _p('NM_Offline_Store_Dashboard.xlsx')
