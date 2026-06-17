@@ -6,7 +6,12 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-PATH = r'C:\Users\Lenovo\OneDrive\Meta\Meta Quarterly Performance Report.xlsx'
+import os as _os, sys as _sys
+_HERE        = _os.path.dirname(_os.path.abspath(__file__))
+_REPO_EXCEL  = _os.path.join(_HERE, 'Meta Quarterly Performance Report.xlsx')
+_LOCAL_EXCEL = r'C:\Users\Lenovo\OneDrive\Meta\Meta Quarterly Performance Report.xlsx'
+# On Streamlit Cloud (Linux) always use repo path; on Windows prefer OneDrive
+PATH = _REPO_EXCEL if (_sys.platform != 'win32' or _os.path.exists(_REPO_EXCEL)) else _LOCAL_EXCEL
 
 MONTH_ORDER = [
     'Oct-2025','Nov-2025','Dec-2025',
