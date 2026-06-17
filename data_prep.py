@@ -6,11 +6,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-import os as _os
-_REPO_EXCEL = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
-                             'Meta Quarterly Performance Report.xlsx')
-PATH = (_REPO_EXCEL if _os.path.exists(_REPO_EXCEL)
-        else r'C:\Users\Lenovo\OneDrive\Meta\Meta Quarterly Performance Report.xlsx')
+PATH = r'C:\Users\Lenovo\OneDrive\Meta\Meta Quarterly Performance Report.xlsx'
 
 MONTH_ORDER = [
     'Oct-2025','Nov-2025','Dec-2025',
