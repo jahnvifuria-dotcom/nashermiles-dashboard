@@ -1,5 +1,8 @@
+meta_config.py
 __pycache__/
 *.pyc
+*.pyo
+*.log
+.streamlit/secrets.toml
 .env
-_patch_dashboard.py
-run_dashboard.bat
+*.tmp
