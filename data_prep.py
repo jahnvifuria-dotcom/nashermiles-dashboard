@@ -46,7 +46,19 @@ DATA_MAX_DATE  = None
 def load_all():
     global HAS_DAILY_DATA, DATA_MIN_DATE, DATA_MAX_DATE
 
+    import openpyxl as _oxl
+    _wb_sheets = _oxl.load_workbook(PATH, read_only=True).sheetnames
+
     df_c = pd.read_excel(PATH, sheet_name='Raw Data - Campaign ')
+    # merge any overflow campaign sheet (e.g. "Raw Data - Campaign 2026")
+    for _s in _wb_sheets:
+        if _s.startswith('Raw Data - Campaign') and _s != 'Raw Data - Campaign ':
+            try:
+                _extra = pd.read_excel(PATH, sheet_name=_s)
+                df_c = pd.concat([df_c, _extra], ignore_index=True)
+            except Exception:
+                pass
+
     df_d = pd.read_excel(PATH, sheet_name='Raw Data - Demographics')
     df_p = pd.read_excel(PATH, sheet_name='Raw Data - Platform & Placement')
     vl   = pd.read_excel(PATH, sheet_name='Vlookup')
