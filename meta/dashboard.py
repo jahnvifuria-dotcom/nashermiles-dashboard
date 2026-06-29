@@ -183,9 +183,19 @@ def sidebar(df_c):
         st.sidebar.caption("Monthly data. Add a 'Date' column for daily granularity.")
 
     st.sidebar.markdown("#### Compare With")
-    comp_options = ["None", "Previous Period", "Previous Month", "Previous Quarter", "Same Period Last Year"]
+    comp_options = ["None", "Previous Period", "Previous Month", "Previous Quarter", "Same Period Last Year", "Custom"]
     comp_sel = st.sidebar.selectbox("Comparison period", comp_options, index=1,
                                     help="Overlay a prior period on KPIs and charts")
+
+    custom_comp_start = custom_comp_end = None
+    if comp_sel == "Custom":
+        import datetime as _dt
+        st.sidebar.markdown("**Custom comparison dates**")
+        _c1, _c2 = st.sidebar.columns(2)
+        custom_comp_start = _c1.date_input("From", value=_dt.date.today() - _dt.timedelta(days=60),
+                                           key="custom_comp_start")
+        custom_comp_end   = _c2.date_input("To",   value=_dt.date.today() - _dt.timedelta(days=31),
+                                           key="custom_comp_end")
 
     st.sidebar.markdown("#### Objective")
     raw_objs = sorted(df_c['Objective'].dropna().astype(str).str.strip().unique().tolist())
@@ -202,7 +212,7 @@ def sidebar(df_c):
     st.sidebar.caption("Source: OneDrive Excel. Click '🔄 Refresh Data' at the top after updating the Excel file.")
 
     sel_idx = list(range(len(sel_months)))  # kept for compatibility
-    return sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel
+    return sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel, custom_comp_start, custom_comp_end
 
 
 def filter_df(df_c, df_d, df_p, obj, start, end):
@@ -217,7 +227,7 @@ def filter_df(df_c, df_d, df_p, obj, start, end):
     return filt(df_c), filt(df_d), filt(df_p)
 
 
-def compute_comp_range(start, end, comp_sel):
+def compute_comp_range(start, end, comp_sel, custom_start=None, custom_end=None):
     """Returns (comp_start, comp_end, label) or (None, None, '') when no comparison."""
     if comp_sel == "None":
         return None, None, ""
@@ -250,6 +260,13 @@ def compute_comp_range(start, end, comp_sel):
     elif comp_sel == "Same Period Last Year":
         comp_start = start - pd.DateOffset(years=1)
         comp_end   = end   - pd.DateOffset(years=1)
+        label = f"{comp_start.strftime('%d %b %Y')} – {comp_end.strftime('%d %b %Y')}"
+
+    elif comp_sel == "Custom":
+        if custom_start is None or custom_end is None:
+            return None, None, ""
+        comp_start = pd.Timestamp(custom_start)
+        comp_end   = pd.Timestamp(custom_end)
         label = f"{comp_start.strftime('%d %b %Y')} – {comp_end.strftime('%d %b %Y')}"
 
     else:
@@ -1239,13 +1256,13 @@ def main():
     df_c_raw, df_d_raw, df_p_raw = load_data()
 
     # sidebar
-    sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel = sidebar(df_c_raw)
+    sel_months, sel_idx, start, end, obj, roas_be, min_spend, comp_sel, custom_comp_start, custom_comp_end = sidebar(df_c_raw)
 
     # filter — selected period
     df_c, df_d, df_p = filter_df(df_c_raw, df_d_raw, df_p_raw, obj, start, end)
 
     # filter — comparison period
-    comp_start, comp_end, comp_label = compute_comp_range(start, end, comp_sel)
+    comp_start, comp_end, comp_label = compute_comp_range(start, end, comp_sel, custom_comp_start, custom_comp_end)
     if comp_start is not None:
         df_c_comp, df_d_comp, df_p_comp = filter_df(df_c_raw, df_d_raw, df_p_raw, obj, comp_start, comp_end)
     else:
