@@ -1278,6 +1278,8 @@ def main():
     agg_inf   = dp._agg(df_c, ['Is_Influencer'])
     inf_rows  = df_c[df_c['Is_Influencer'] == True]
     agg_per_inf = dp._agg(inf_rows, ['Influencer']).sort_values('Spend', ascending=False)
+    _ad_grp_cols = [c for c in ['Ad name','Category','Format','Funnel'] if c in df_c.columns]
+    agg_per_ad  = dp._agg(df_c, _ad_grp_cols).sort_values('Spend', ascending=False)
     agg_demo  = dp._agg(df_d, ['Gender','Age']).sort_values('Spend', ascending=False)
     agg_plat  = dp._agg(df_p, ['Platform','Placement']).sort_values('Spend', ascending=False)
     # agg_adset now built on-demand in the Funnel tab (filtered to spend>0)
@@ -1292,11 +1294,12 @@ def main():
         agg_inf_comp     = dp._agg(df_c_comp, ['Is_Influencer'])
         _inf_rows_comp   = df_c_comp[df_c_comp['Is_Influencer'] == True]
         agg_per_inf_comp = dp._agg(_inf_rows_comp, ['Influencer'])
+        agg_per_ad_comp  = dp._agg(df_c_comp, _ad_grp_cols)
         agg_demo_comp    = dp._agg(df_d_comp, ['Gender','Age']) if not df_d_comp.empty else pd.DataFrame()
         agg_plat_comp    = dp._agg(df_p_comp, ['Platform','Placement']) if not df_p_comp.empty else pd.DataFrame()
     else:
         agg_acc_comp = agg_fun_t_comp = agg_fun_comp = agg_cat_comp = agg_fmt_comp = \
-        agg_inf_comp = agg_per_inf_comp = agg_demo_comp = agg_plat_comp = pd.DataFrame()
+        agg_inf_comp = agg_per_inf_comp = agg_per_ad_comp = agg_demo_comp = agg_plat_comp = pd.DataFrame()
 
     # ── header ───────────────────────────────────────────────────────────────
     st.markdown("""
@@ -1860,6 +1863,50 @@ def main():
             st.warning("No data."); return
 
         _comp_banner(df_c, df_c_comp, comp_label)
+
+        # ── All Ads Breakdown ────────────────────────────────────────────────
+        st.markdown('<div class="section-title">All Ads Breakdown</div>',
+                    unsafe_allow_html=True)
+        aa, ab, ac, ad_ = st.columns(4)
+        ad_roas_min  = aa.number_input("Min ROAS",  value=0.0,  step=0.5, key='ad_roas_min')
+        ad_roas_max  = ab.number_input("Max ROAS",  value=50.0, step=0.5, key='ad_roas_max')
+        ad_funnel    = ac.selectbox("Funnel", ['All'] + sorted(agg_per_ad['Funnel'].dropna().unique().tolist())
+                                    if 'Funnel' in agg_per_ad.columns else ['All'], key='ad_funnel')
+        ad_search    = ad_.text_input("Search ad name", key='ad_search')
+
+        ad_view = agg_per_ad.copy()
+        ad_view = ad_view[
+            (ad_view['ROAS'].fillna(0) >= ad_roas_min) &
+            (ad_view['ROAS'].fillna(0) <= ad_roas_max)
+        ]
+        if ad_funnel != 'All' and 'Funnel' in ad_view.columns:
+            ad_view = ad_view[ad_view['Funnel'] == ad_funnel]
+        if ad_search:
+            ad_view = ad_view[ad_view['Ad name'].astype(str).str.contains(ad_search, case=False, na=False)]
+
+        st.caption(f"Showing **{len(ad_view)}** ads  |  Click column header to sort")
+        ad_cols = ['Ad name','Category','Format','Funnel','Spend','Revenue','ROAS','Purchases','CPA','CTR','CVR']
+        ad_cols = [c for c in ad_cols if c in ad_view.columns]
+        disp_ad = ad_view[ad_cols].copy()
+        disp_ad, has_ad_delta = _agg_with_comp_delta(disp_ad, agg_per_ad_comp, ['Ad name'])
+        if has_ad_delta and comp_label:
+            ad_cols = ad_cols + ['ROAS Δ%']
+        for c in ['Spend','Revenue','CPA']:
+            if c in disp_ad: disp_ad[c] = disp_ad[c].round(0)
+        for c in ['ROAS','CTR','CVR']:
+            if c in disp_ad: disp_ad[c] = disp_ad[c].round(2)
+        interactive_table(disp_ad[[c for c in ad_cols if c in disp_ad.columns]],
+                          roas_col='ROAS', roas_be=roas_be)
+
+        st.markdown("**AI Insights — All Ads**")
+        ad_ins = adset_insights(
+            ad_view, roas_be, min_spend,
+            comp_df=agg_per_ad_comp if not agg_per_ad_comp.empty else None,
+            comp_label=comp_label)
+        for ins in ad_ins:
+            st.markdown(f"- {ins}")
+
+        st.markdown("---")
 
         cr1, cr2 = st.columns(2)
 
