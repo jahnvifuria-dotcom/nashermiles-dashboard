@@ -1867,18 +1867,31 @@ def main():
         # ── All Ads Breakdown ────────────────────────────────────────────────
         st.markdown('<div class="section-title">All Ads Breakdown</div>',
                     unsafe_allow_html=True)
-        aa, ab, ac, ad_ = st.columns(4)
-        ad_roas_min  = aa.number_input("Min ROAS",  value=0.0,  step=0.5, key='ad_roas_min')
-        ad_roas_max  = ab.number_input("Max ROAS",  value=50.0, step=0.5, key='ad_roas_max')
-        ad_funnel    = ac.selectbox("Funnel", ['All'] + sorted(agg_per_ad['Funnel'].dropna().unique().tolist())
-                                    if 'Funnel' in agg_per_ad.columns else ['All'], key='ad_funnel')
-        ad_search    = ad_.text_input("Search ad name", key='ad_search')
+        aa, ab = st.columns(2)
+        ad_roas_min = aa.number_input("Min ROAS", value=0.0,  step=0.5, key='ad_roas_min')
+        ad_roas_max = ab.number_input("Max ROAS", value=50.0, step=0.5, key='ad_roas_max')
+
+        fa, fb, fc, fd = st.columns(4)
+        _cat_opts = ['All'] + sorted(agg_per_ad['Category'].dropna().unique().tolist()) \
+                    if 'Category' in agg_per_ad.columns else ['All']
+        _fmt_opts = ['All'] + sorted(agg_per_ad['Format'].dropna().unique().tolist()) \
+                    if 'Format'   in agg_per_ad.columns else ['All']
+        _fun_opts = ['All'] + sorted(agg_per_ad['Funnel'].dropna().unique().tolist()) \
+                    if 'Funnel'   in agg_per_ad.columns else ['All']
+        ad_category = fa.selectbox("Category", _cat_opts, key='ad_category')
+        ad_format   = fb.selectbox("Format",   _fmt_opts, key='ad_format')
+        ad_funnel   = fc.selectbox("Funnel",   _fun_opts, key='ad_funnel')
+        ad_search   = fd.text_input("Search ad name", key='ad_search')
 
         ad_view = agg_per_ad.copy()
         ad_view = ad_view[
             (ad_view['ROAS'].fillna(0) >= ad_roas_min) &
             (ad_view['ROAS'].fillna(0) <= ad_roas_max)
         ]
+        if ad_category != 'All' and 'Category' in ad_view.columns:
+            ad_view = ad_view[ad_view['Category'] == ad_category]
+        if ad_format != 'All' and 'Format' in ad_view.columns:
+            ad_view = ad_view[ad_view['Format'] == ad_format]
         if ad_funnel != 'All' and 'Funnel' in ad_view.columns:
             ad_view = ad_view[ad_view['Funnel'] == ad_funnel]
         if ad_search:
